@@ -1,16 +1,13 @@
 # screenshot-cmd
 Simple command-line tool for making screenshots (for Windows Vista or later)
 
-Fork from https://code.google.com/archive/p/screenshot-cmd/
------------------------------------------------------------
-Fixed so that the drop shadow of the window frame does not appear.  
-(ウィンドウフレームのドロップシャドウが映らないように修正した)
+Fork from https://github.com/chuntaro/screenshot-cmd
+
+Made some changes to compile with MinGW32, a bit more messy (as I couldn't be bothered to get wchar_t and unicode right).
+Also need to include libdwmapi.a and headers, for some reason is missing in MinGW32.
 
 To build:
-> g++ -Wall -Os -mwindows -municode screenshot.cpp -lgdiplus -lDwmapi -o screenshot -static
-
-To reduce the size:
-> strip screenshot.exe
+> g++ -Wall -Os -mwindows -m32 screenshot.cpp -lgdiplus -lDwmapi -o screenshot -static
 
 To run:
 > screenshot.exe -wh 1e9060a -o screenshot.png

@@ -60,7 +60,7 @@
 
 #include <windows.h>
 #include <gdiplus.h>
-#include <Dwmapi.h>
+#include "Dwmapi.h"
 #include <string.h>  
 #include <stdio.h> 
 
@@ -102,15 +102,24 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
   return -1;  // Failure
 }
 
-int wmain(int argc, wchar_t** argv)
+wchar_t *GetWC(const char *c)
+{
+    const size_t cSize = strlen(c)+1;
+    wchar_t* wc = new wchar_t[cSize];
+    mbstowcs (wc, c, cSize);
+
+    return wc;
+}
+
+int main(int argc, char* argv[])
 {
   HWND windowSearched 			= NULL;
   RECT rect						= {0};
-  wchar_t filename[MAX_PATH]	= {0};
+  char filename[MAX_PATH]	= {0};
 
   bool rectProvided = false;
-
-  if( argc>1 && wcscmp( argv[1], L"-h" )==0 ){
+  
+  if( argc>1 && wcscmp(  GetWC(argv[1]), L"-h" )==0 ){
 	printf(	"\nNAME:\n"
  			"\tscreenshot -\tSave a screenshot of the Windows desktop\n\t\t\tor window in .png format.\n\n"
 			"SYNOPSIS:\n"
@@ -133,33 +142,35 @@ int wmain(int argc, wchar_t** argv)
 	  return 1;
   }
 
-  for(short i=1; i < argc; i++ ) {
-		if( wcscmp( argv[i], L"-wt" )==0 && i+1<argc ){
-			windowSearched = FindWindowW( NULL, argv[i+1] );
+  for(short i=0; i < argc-1; i++ ) {
+  		if(strcmp(argv[i+1],"-wt" )==0&& i+1<argc ){
+      windowSearched = FindWindowW( NULL, GetWC(argv[i+2]) );
 			if(windowSearched){
 				SetWindowPos( windowSearched, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW ); 
 				Sleep(200); //TODO: Arbitrary waiting time for window to become topmost
 				if(!rectProvided) DwmGetWindowAttribute(windowSearched, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(rect));
 			}
-		}else  if( wcscmp( argv[i], L"-wh" )==0 && i+1<argc ){
-			windowSearched = (HWND)wcstoul( argv[i+1],NULL,16); //TODO: How does it work on 64bit enviroment?
+		}else  if(strcmp(argv[i+1],"-wh" )==0&& i+1<argc ){
+			
+      windowSearched = (HWND)wcstoul(  GetWC(argv[i+2]),NULL,16); //TODO: How does it work on 64bit enviroment?
 			if(windowSearched){
 				SetWindowPos( windowSearched, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW ); 
 				Sleep(200); //TODO: Arbitrary waiting time for window to become topmost
 				if(!rectProvided) DwmGetWindowAttribute(windowSearched, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(rect));
 			}
-		}else if( wcscmp( argv[i], L"-rc" )==0 && i+4<argc ){
-			rect.left	= _wtoi( argv[i+1] );
-			rect.top	= _wtoi( argv[i+2] );
-			rect.right	= _wtoi( argv[i+3] );
-			rect.bottom	= _wtoi( argv[i+4] );
+		}else if( wcscmp(  GetWC(argv[i+1]), L"-rc" )==0 && i+4<argc ){
+      rect.left	= _wtoi(  GetWC(argv[i+1]) );
+			rect.top	= _wtoi(  GetWC(argv[i+1]) );
+			rect.right	= _wtoi(  GetWC(argv[i+1]) );
+			rect.bottom	= _wtoi( GetWC(argv[i+1]) );
 
 			rectProvided = true;
-		}else if( wcscmp( argv[i], L"-o" )==0 && i+1<argc ){
-			wcscpy( filename,  argv[i+1] );
-		}
-  }
+		}else if(strcmp(argv[i+1],"-o" )==0 && i+1<argc ){
+      strcpy( filename,  argv[i+2] );
 
+		} 
+  }
+  
   GdiplusStartupInput gdiplusStartupInput;
   ULONG_PTR gdiplusToken;
   GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -171,7 +182,7 @@ int wmain(int argc, wchar_t** argv)
 	OffsetRect( &rect, wrect.left, wrect.top );
   }
 
-  if( wcslen(filename)==0 ) wcscpy( filename,  L"screenshot.png" );
+  if( wcslen(GetWC(filename))==0 ) wcscpy( GetWC(filename),  L"screenshot.png" );
 
   HWND desktop = GetDesktopWindow();
   HDC desktopdc = GetDC(desktop);
@@ -191,7 +202,7 @@ int wmain(int argc, wchar_t** argv)
   CLSID  encoderClsid;
   Status stat = GenericError;
   if (b && GetEncoderClsid(L"image/png", &encoderClsid) != -1) {
-    stat = b->Save(filename, &encoderClsid, NULL);
+    stat = b->Save(GetWC(filename), &encoderClsid, NULL);
   }
   if (b)
     delete b;
